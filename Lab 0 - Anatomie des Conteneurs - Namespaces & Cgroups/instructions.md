@@ -8,6 +8,462 @@
   * Paquets recommandés : `iproute2`, `python3`, `stress` (optionnel), `curl`.
   * **Attention :** Ce lab manipule des paramètres noyau. Il est fortement recommandé de l'utiliser dans une VM jetable.
 
+<details><summary>Réinisitalisation</summary>
+
+```bash
+cat > /tmp/reset-container-lab.sh <<'EOF'
+#!/usr/bin/env bash
+
+# ============================================================
+# RESET COMPLET DOCKER / PODMAN / CONTAINERD
+# ============================================================
+
+set -u
+
+export DEBIAN_FRONTEND=noninteractive
+
+echo
+echo "============================================================"
+echo "       RESET COMPLET DOCKER / PODMAN / CONTAINERD"
+echo "============================================================"
+echo
+echo "Ce script va supprimer :"
+echo
+echo "  - Docker"
+echo "  - Podman"
+echo "  - containerd"
+echo "  - Buildah / Skopeo"
+echo "  - conteneurs"
+echo "  - images"
+echo "  - volumes"
+echo "  - réseaux"
+echo "  - caches"
+echo "  - credentials Docker"
+echo "  - configuration Docker"
+echo "  - configuration Podman"
+echo "  - stockage rootless"
+echo "  - services systemd"
+echo "  - installations Snap"
+echo
+echo "AUCUNE DONNÉE DOCKER NE SERA CONSERVÉE."
+echo
+read -r -p "Tape exactement RESET pour continuer : " CONFIRM
+
+if [[ "$CONFIRM" != "RESET" ]]; then
+    echo
+    echo "Annulation."
+    exit 1
+fi
+
+echo
+echo "============================================================"
+echo "DÉBUT DU NETTOYAGE"
+echo "============================================================"
+echo
+
+
+# ============================================================
+# 1. SERVICES
+# ============================================================
+
+echo "[1/12] Arrêt des services..."
+
+sudo systemctl stop docker.service 2>/dev/null || true
+sudo systemctl stop docker.socket 2>/dev/null || true
+sudo systemctl stop containerd.service 2>/dev/null || true
+sudo systemctl stop podman.service 2>/dev/null || true
+sudo systemctl stop podman.socket 2>/dev/null || true
+
+systemctl --user stop docker.service 2>/dev/null || true
+systemctl --user stop docker.socket 2>/dev/null || true
+systemctl --user stop podman.service 2>/dev/null || true
+systemctl --user stop podman.socket 2>/dev/null || true
+
+
+# ============================================================
+# 2. SUPPRESSION DES CONTENEURS DOCKER
+# ============================================================
+
+echo "[2/12] Suppression des conteneurs Docker..."
+
+if command -v docker >/dev/null 2>&1; then
+    docker ps -aq 2>/dev/null | xargs -r docker rm -f 2>/dev/null || true
+fi
+
+if sudo docker version >/dev/null 2>&1; then
+    sudo docker ps -aq 2>/dev/null | xargs -r sudo docker rm -f 2>/dev/null || true
+fi
+
+
+# ============================================================
+# 3. SUPPRESSION PODMAN
+# ============================================================
+
+echo "[3/12] Suppression des conteneurs/images/volumes Podman..."
+
+if command -v podman >/dev/null 2>&1; then
+    podman stop -a -t 0 2>/dev/null || true
+    podman rm -a -f 2>/dev/null || true
+    podman system reset --force 2>/dev/null || true
+fi
+
+if sudo podman version >/dev/null 2>&1; then
+    sudo podman stop -a -t 0 2>/dev/null || true
+    sudo podman rm -a -f 2>/dev/null || true
+    sudo podman system reset --force 2>/dev/null || true
+fi
+
+
+# ============================================================
+# 4. KILL DES PROCESSUS RESTANTS
+# ============================================================
+
+echo "[4/12] Arrêt forcé des processus restants..."
+
+sudo pkill -9 dockerd 2>/dev/null || true
+sudo pkill -9 containerd 2>/dev/null || true
+sudo pkill -9 containerd-shim 2>/dev/null || true
+sudo pkill -9 docker-proxy 2>/dev/null || true
+sudo pkill -9 podman 2>/dev/null || true
+sudo pkill -9 conmon 2>/dev/null || true
+sudo pkill -9 buildah 2>/dev/null || true
+sudo pkill -9 pasta 2>/dev/null || true
+sudo pkill -9 slirp4netns 2>/dev/null || true
+
+
+# ============================================================
+# 5. SUPPRESSION DES DONNÉES DOCKER
+# ============================================================
+
+echo "[5/12] Suppression complète du stockage Docker..."
+
+sudo rm -rf \
+    /var/lib/docker \
+    /var/lib/containerd \
+    /var/cache/docker \
+    /etc/docker \
+    /run/docker \
+    /run/containerd
+
+rm -rf \
+    "$HOME/.docker" \
+    "$HOME/.config/docker" \
+    "$HOME/.cache/docker" \
+    "$HOME/.local/share/docker"
+
+
+# ============================================================
+# 6. SUPPRESSION DES DONNÉES PODMAN / CONTAINERS
+# ============================================================
+
+echo "[6/12] Suppression complète du stockage Podman..."
+
+rm -rf \
+    "$HOME/.config/containers" \
+    "$HOME/.local/share/containers" \
+    "$HOME/.cache/containers" \
+    "$HOME/.local/share/podman" \
+    "$HOME/.config/podman" \
+    "$HOME/.cache/podman"
+
+sudo rm -rf \
+    /etc/containers \
+    /var/lib/containers \
+    /var/cache/containers \
+    /run/containers
+
+
+# ============================================================
+# 7. BUILDAH / SKOPEO / CRI-O
+# ============================================================
+
+echo "[7/12] Suppression Buildah / Skopeo / CRI-O..."
+
+rm -rf \
+    "$HOME/.config/buildah" \
+    "$HOME/.local/share/buildah" \
+    "$HOME/.config/skopeo"
+
+sudo rm -rf \
+    /etc/crio \
+    /var/lib/crio \
+    /var/log/crio
+
+
+# ============================================================
+# 8. PAQUETS APT
+# ============================================================
+
+echo "[8/12] Suppression des paquets APT..."
+
+if command -v apt-get >/dev/null 2>&1; then
+
+    sudo apt-get purge -y \
+        docker-ce \
+        docker-ce-cli \
+        docker-ce-rootless-extras \
+        docker-buildx-plugin \
+        docker-compose-plugin \
+        docker-compose \
+        docker.io \
+        docker-doc \
+        docker-registry \
+        containerd \
+        containerd.io \
+        runc \
+        podman \
+        podman-docker \
+        buildah \
+        skopeo \
+        cri-o \
+        cri-o-runc \
+        2>/dev/null || true
+
+    sudo apt-get autoremove -y 2>/dev/null || true
+    sudo apt-get autoclean -y 2>/dev/null || true
+fi
+
+
+# ============================================================
+# 9. SNAP — DOCKER
+# ============================================================
+
+echo "[9/12] Suppression Docker Snap..."
+
+if command -v snap >/dev/null 2>&1; then
+
+    # Suppression avec --purge pour empêcher la création
+    # d'un snapshot automatique des données Docker.
+    sudo snap remove docker --purge 2>/dev/null || true
+
+    # Recherche et suppression des snapshots Docker existants.
+    SNAP_IDS=$(sudo snap saved 2>/dev/null | awk '$2 == "docker" {print $1}')
+
+    if [[ -n "${SNAP_IDS:-}" ]]; then
+        for ID in $SNAP_IDS; do
+            echo "Suppression du snapshot Snap Docker #$ID..."
+            sudo snap forget "$ID" 2>/dev/null || true
+        done
+    fi
+
+    # Au cas où un ancien paquet Docker Snap aurait laissé
+    # des données résiduelles.
+    sudo rm -rf \
+        /var/snap/docker \
+        /snap/docker \
+        /var/lib/snapd/snap/docker
+fi
+
+
+# ============================================================
+# 10. SERVICES SYSTEMD / CONFIGURATION
+# ============================================================
+
+echo "[10/12] Nettoyage systemd..."
+
+sudo rm -f \
+    /etc/systemd/system/docker.service \
+    /etc/systemd/system/docker.socket \
+    /etc/systemd/system/containerd.service \
+    /etc/systemd/system/podman.service \
+    /etc/systemd/system/podman.socket
+
+rm -f \
+    "$HOME/.config/systemd/user/docker.service" \
+    "$HOME/.config/systemd/user/docker.socket" \
+    "$HOME/.config/systemd/user/podman.service" \
+    "$HOME/.config/systemd/user/podman.socket"
+
+sudo systemctl daemon-reload 2>/dev/null || true
+systemctl --user daemon-reload 2>/dev/null || true
+
+
+# ============================================================
+# 11. GROUPE DOCKER + CONFIGURATION RÉSEAU
+# ============================================================
+
+echo "[11/12] Nettoyage groupe Docker et interfaces réseau..."
+
+if getent group docker >/dev/null 2>&1; then
+    sudo groupdel docker 2>/dev/null || true
+fi
+
+# Suppression des interfaces réseau Docker/Podman restantes.
+for IFACE in docker0 cni0 podman0; do
+    if ip link show "$IFACE" >/dev/null 2>&1; then
+        sudo ip link delete "$IFACE" 2>/dev/null || true
+    fi
+done
+
+# Nettoyage éventuel des fichiers CNI.
+sudo rm -rf \
+    /etc/cni \
+    /var/lib/cni \
+    "$HOME/.config/cni" \
+    "$HOME/.local/share/cni"
+
+
+# ============================================================
+# 12. NETTOYAGE FINAL
+# ============================================================
+
+echo "[12/12] Nettoyage final..."
+
+rm -rf \
+    "$HOME/.docker" \
+    "$HOME/.config/docker" \
+    "$HOME/.cache/docker" \
+    "$HOME/.local/share/docker" \
+    "$HOME/.config/containers" \
+    "$HOME/.local/share/containers" \
+    "$HOME/.cache/containers" \
+    "$HOME/.config/podman" \
+    "$HOME/.local/share/podman" \
+    "$HOME/.cache/podman"
+
+sudo rm -rf \
+    /var/lib/docker \
+    /var/lib/containerd \
+    /var/lib/containers \
+    /etc/docker \
+    /etc/containers \
+    /etc/cni \
+    /var/lib/cni \
+    /run/docker \
+    /run/containerd \
+    /run/containers
+
+sudo systemctl daemon-reload 2>/dev/null || true
+
+
+# ============================================================
+# VÉRIFICATION
+# ============================================================
+
+echo
+echo "============================================================"
+echo "VÉRIFICATION FINALE"
+echo "============================================================"
+echo
+
+echo "=== COMMANDES ==="
+
+command -v docker >/dev/null 2>&1 \
+    && echo "ATTENTION : docker existe encore" \
+    || echo "OK : docker absent"
+
+command -v dockerd >/dev/null 2>&1 \
+    && echo "ATTENTION : dockerd existe encore" \
+    || echo "OK : dockerd absent"
+
+command -v docker-compose >/dev/null 2>&1 \
+    && echo "ATTENTION : docker-compose existe encore" \
+    || echo "OK : docker-compose absent"
+
+command -v podman >/dev/null 2>&1 \
+    && echo "ATTENTION : podman existe encore" \
+    || echo "OK : podman absent"
+
+command -v buildah >/dev/null 2>&1 \
+    && echo "ATTENTION : buildah existe encore" \
+    || echo "OK : buildah absent"
+
+command -v skopeo >/dev/null 2>&1 \
+    && echo "ATTENTION : skopeo existe encore" \
+    || echo "OK : skopeo absent"
+
+echo
+echo "=== SNAP ==="
+
+if command -v snap >/dev/null 2>&1; then
+    if snap list 2>/dev/null | grep -Eiq 'docker|podman'; then
+        echo "ATTENTION : Docker/Podman présent dans Snap"
+        snap list 2>/dev/null | grep -Ei 'docker|podman' || true
+    else
+        echo "OK : aucun Docker/Podman Snap"
+    fi
+else
+    echo "OK : Snap non installé"
+fi
+
+echo
+echo "=== SERVICES ==="
+
+SERVICES=$(systemctl list-unit-files 2>/dev/null | grep -Ei 'docker|containerd|podman' || true)
+
+if [[ -n "$SERVICES" ]]; then
+    echo "ATTENTION : services trouvés :"
+    echo "$SERVICES"
+else
+    echo "OK : aucun service Docker/Podman/containerd"
+fi
+
+echo
+echo "=== PROCESSUS ==="
+
+PROCS=$(ps aux | grep -E '[d]ockerd|[c]ontainerd|[p]odman|[c]onmon' || true)
+
+if [[ -n "$PROCS" ]]; then
+    echo "ATTENTION : processus encore actifs :"
+    echo "$PROCS"
+else
+    echo "OK : aucun processus Docker/Podman"
+fi
+
+echo
+echo "=== RÉPERTOIRES ==="
+
+DIRS=(
+    "$HOME/.docker"
+    "$HOME/.config/docker"
+    "$HOME/.config/containers"
+    "$HOME/.local/share/containers"
+    "$HOME/.config/podman"
+    "$HOME/.local/share/podman"
+    /etc/docker
+    /etc/containers
+    /var/lib/docker
+    /var/lib/containerd
+    /var/lib/containers
+    /var/snap/docker
+)
+
+ALL_CLEAN=true
+
+for DIR in "${DIRS[@]}"; do
+    if [[ -e "$DIR" ]]; then
+        echo "ATTENTION : $DIR existe encore"
+        ALL_CLEAN=false
+    else
+        echo "OK : $DIR"
+    fi
+done
+
+echo
+echo "============================================================"
+
+if [[ "$ALL_CLEAN" == true ]]; then
+    echo "        RESET TERMINÉ — ENVIRONNEMENT PROPRE"
+else
+    echo "        RESET TERMINÉ AVEC QUELQUES RESTES"
+fi
+
+echo "============================================================"
+echo
+echo "Docker / Podman / containerd ont été nettoyés."
+echo
+echo "IMPORTANT : les credentials Docker/Harbor qui étaient"
+echo "présents dans ~/.docker/config.json doivent être considérés"
+echo "comme compromis. Révoque/renouvelle les tokens concernés."
+echo
+EOF
+
+chmod +x /tmp/reset-container-lab.sh
+/tmp/reset-container-lab.sh
+```
+
+</details>
+
 -----
 
 ## PARTIE 1 : Les Namespaces (L'Isolation)
