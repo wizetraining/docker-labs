@@ -6,8 +6,8 @@ Cet atelier vous guidera à travers les concepts fondamentaux de Kubernetes, de 
 * Un cluster Kubernetes fonctionnel
 * kubectl configuré pour communiquer avec votre cluster.
 
-L'image Docker ` mpakoupete/webapp-count:v1` est disponible sur Docker Hub. 
-* Si vous rencontrez des limitations, utilisez `harbor.mpakoupete.com/docker/webapp-count:v1` ou `harbor.mpakoupete.com/docker/redis:6-alpine`, ou `harbor.mpakoupete.com/docker/webapp-count:v2`
+L'image Docker `wizetraining/webapp-count:v1` est disponible sur Docker Hub. 
+* Si vous rencontrez des limitations, utilisez `public.ecr.aws/wizetraining/webapp-count:v1` ou `public.ecr.aws/wizetraining/postgres:16-alpine`, ou `public.ecr.aws/wizetraining/webapp-count:v2`
 
 Le code de l'application est ci-dessous:
 
