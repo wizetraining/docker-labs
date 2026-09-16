@@ -4,7 +4,58 @@
 
 Mettre en place un pipeline GitLab CI qui construit automatiquement une image Docker et la pousse vers un registre privé sécurisé (Harbor) à chaque *push* sur la branche principale (`main`).
 
-## Partie 1 : Exploration et Utilisation du Registre de Production (Harbor)
+## Partie 1 : Introduction et Test du Registre Docker Standard
+
+Cette partie permet de comprendre le concept d'un registre sans les complexités de la sécurité de production.
+
+1.  **Démarrer un Registre Privé Local (`registry:2`) :**
+    Exécutez cette commande sur votre machine locale pour lancer un registre Docker non sécurisé (HTTP) sur le port 5000 :
+
+    ```bash
+    docker run -d -p 5000:5000 --restart=always --name local-registry registry:2
+    ```
+
+2.  **Activer l'Accès HTTP pour le Test :**
+    Pour que votre Docker CLI puisse se connecter à un registre non sécurisé, vous devez temporairement l'ajouter à la liste d'accès (édition de `/etc/docker/daemon.json` ou `~/.docker/daemon.json` sur Linux/macOS, ou via l'interface de Docker Desktop sur Windows). 
+    
+    ```json
+      {
+        "insecure-registries": [
+          "localhost:5000"
+        ]
+      }
+    ```
+    
+    Redémarrez le démon Docker après modification.
+
+    ```bash
+    sudo systemctl restart docker
+    ```
+
+3.  **Test Manuel (Build & Push) :**
+
+      * Créez un simple `Dockerfile` dans un répertoire.
+      * Construisez et poussez une image :
+        ```bash
+        docker build -t localhost:5000/test-app:v1 .
+        docker push localhost:5000/test-app:v1
+        ```
+
+4.  **🔍 Exploration et Vérification (Accès Anonyme) :**
+
+      * **Via le Navigateur :** Ouvrez votre navigateur et allez à l'adresse suivante : **`http://localhost:5000/v2/_catalog`**.
+          * **Observation :** Vous devriez voir une réponse JSON listant le dépôt `test-app` que vous venez de pousser.
+      * **Via `curl` (API) :** Exécutez cette commande dans votre terminal :
+        ```bash
+        curl http://localhost:5000/v2/_catalog
+        ```
+          * **Observation :** La commande réussit sans aucune authentification.
+
+5.  **Conclusion :** Félicitations, vous avez un registre. Il est simple et fonctionnel, mais **l'accès anonyme en lecture et en écriture n'est pas sécurisé ni idéal pour la production**. Ce manque de contrôle justifie l'utilisation de **Harbor**.
+
+-----
+
+## Partie 2 : Exploration et Utilisation du Registre de Production (Harbor)
 
 En production, nous utilisons des solutions robustes comme **Harbor** pour la sécurité (HTTPS, Scan de Vulnérabilité, Governance).
 
@@ -18,7 +69,7 @@ En production, nous utilisons des solutions robustes comme **Harbor** pour la s�
 
       * Allez dans la section **Projects** (Projets).
       * Cliquez sur **New Project**.
-      * **Nom du Projet :** `<votre-registre>` (ex: `jdupond-lab10`).
+      * **Nom du Projet :** `votre-login-images` (ex: `mpakoupete-images`).
       * **Access Level :** Cochez **Private** (Privé).
       * Cliquez sur **OK**.
 
