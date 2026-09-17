@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import pptx; print\\('python-pptx OK', pptx.__version__\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 fmt.py 76 87 1)",
+      "Bash(python3 fmt.py 65 69)",
+      "Bash(python3 -)",
+      "Bash(python3 -c \"import deckkit; print\\('import ok'\\)\")",
+      "Bash(python3 build_deck.py)",
+      "Bash(which soffice *)",
+      "Read(//Applications/LibreOffice.app/Contents/MacOS/**)",
+      "Bash(mkdir -p render)",
+      "Bash(soffice --headless --convert-to pdf --outdir render \"/Users/mpakoupete/Library/Mobile Documents/com~apple~CloudDocs/Documents/mawaki/courses/courses_labs/Gitlab/docker-labs-v2/slides/claude_work/formation Docker Avance.pptx\")",
+      "Bash(cp \"/Users/mpakoupete/Library/Mobile Documents/com~apple~CloudDocs/Documents/mawaki/courses/courses_labs/Gitlab/docker-labs-v2/slides/claude_work/formation Docker Avance.pptx\" ./deck.pptx)",
+      "Bash(soffice -env:UserInstallation=file:///tmp/lo_profile_claude --headless --norestore --convert-to pdf --outdir render deck.pptx)",
+      "Bash(cp \"/Users/mpakoupete/Library/Mobile Documents/com~apple~CloudDocs/Documents/mawaki/courses/courses_labs/Gitlab/docker-labs-v2/slides/model formation Maitriser Docker.pptx\" ./model.pptx)",
+      "Bash(soffice -env:UserInstallation=file:///tmp/lo_profile_claude2 --headless --norestore --convert-to pdf --outdir render model.pptx)",
+      "Bash(pdftoppm -f 83 -l 83 -r 100 -png render/model.pdf render/model83)",
+      "Bash(pdftoppm -f 2 -l 2 -r 100 -png render/model.pdf render/model02)",
+      "Bash(ls render/model*.png)",
+      "Bash(python3 -c \"import importlib,deckkit; print\\('ok'\\)\")",
+      "Bash(grep -n '\\\\*\\\\*`\\\\|`\\\\*\\\\*' build_deck.py)",
+      "Bash(grep -n 'HorizontalPodAutoscaler' build_deck.py)",
+      "Bash(pdftotext -bbox render/r3/deck.pdf render/r3/deck.xhtml)"
+    ]
+  }
+}
