@@ -670,23 +670,30 @@ sudo rm -f /root/temoin-hote.txt
 
 Nous passons à la construction de la frontière. Première couche : ne donner que les privilèges nécessaires.
 
-### Exercice 1 : `CAP_NET_RAW` et le `ping`
+### Exercice 1 : `CAP_NET_RAW` et le `arping`
 
-**Concept :** `ping` a besoin de créer une socket RAW. C'est un bon révélateur de `CAP_NET_RAW`, accordée par défaut — et qui permet aussi le spoofing ARP/IP.
+**Concept :** `arping` a besoin de créer une socket RAW. C'est un bon révélateur de `CAP_NET_RAW`, accordée par défaut — et qui permet aussi le spoofing ARP/IP.
 
-1. Par défaut, le `ping` fonctionne :
+1. Par défaut, le `arping` fonctionne :
 
 ```bash
-docker run --rm alpine ping -c 2 127.0.0.1
+docker run --rm alpine sh -c "apk add --no-cache iputils-arping && arping -c 2 172.17.0.1"
 ```
 
 2. Retirez la capability :
 
 ```bash
-docker run --rm --cap-drop=NET_RAW alpine ping -c 2 127.0.0.1
+docker run --rm --cap-drop=NET_RAW alpine sh -c "apk add --no-cache iputils-arping && arping -c 2 172.17.0.1"
 ```
 
-*Résultat attendu :* `ping: permission denied (are you root?)`.
+*Résultat attendu :* 
+```
+(1/2) Installing libcap2 (2.78-r0)
+(2/2) Installing iputils-arping (20250605-r2)
+Executing busybox-1.37.0-r31.trigger
+OK: 8269 KiB in 18 packages
+arping: socket: Operation not permitted             <------------ Permission non accordée
+```
 
 3. Le CIS recommande de retirer `NET_RAW` : votre application web n'en a aucun besoin.
 
