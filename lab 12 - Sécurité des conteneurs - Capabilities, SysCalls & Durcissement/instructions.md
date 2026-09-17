@@ -826,6 +826,7 @@ docker run --rm --cap-add=SYS_ADMIN --security-opt seccomp=unconfined alpine sh 
 ```
 
 *Observation :* le montage réussit. Le blocage venait bien de **seccomp**, qui vient en complément des capabilities.
+Si c'est vous obtenez toujours `Operation not permitted`, c'est peut être du au blocage de AppArmor. Ajouter l'option `--security-opt apparmor=unconfined` puis réessayez.
 
 3. Autre exemple : la création de namespaces par `unshare()` :
 
