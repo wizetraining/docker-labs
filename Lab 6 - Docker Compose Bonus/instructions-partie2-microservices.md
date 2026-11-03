@@ -477,21 +477,21 @@ En entreprise, nous ne déployons pas depuis notre PC. Nous envoyons nos images 
 > **Note Entreprise :** Normalement, vous ne tapez pas ces commandes. C'est un pipeline **GitLab CI** qui détecte votre `git push`, lance les tests, build les images Docker et les pousse automatiquement. Ici, nous le faisons manuellement pour comprendre.
 
 <<<<<<< HEAD
-Connectez vous à [https://harbor.mpakoupete.com](https://harbor.mpakoupete.com) puis créez un repository publique du nom de `<votre-prenom>-formation` (ex: `mawaki-formation`)
+Connectez vous à [https://harbor.wizetraining.com](https://harbor.wizetraining.com) puis créez un repository publique du nom de `<votre-prenom>-formation` (ex: `mawaki-formation`)
 
 ```bash
 # 1. Login au registre
-docker login harbor.mpakoupete.com
+docker login harbor.wizetraining.com
 
 # 2. Build et Tag des images
-docker build -t harbor.mpakoupete.com/<votre-prenom>-formation/vote:v1 ./vote
-docker build -t harbor.mpakoupete.com/<votre-prenom>-formation/worker:v1 ./worker
-docker build -t harbor.mpakoupete.com/<votre-prenom>-formation/result:v1 ./result
+docker build -t harbor.wizetraining.com/<votre-prenom>-formation/vote:v1 ./vote
+docker build -t harbor.wizetraining.com/<votre-prenom>-formation/worker:v1 ./worker
+docker build -t harbor.wizetraining.com/<votre-prenom>-formation/result:v1 ./result
 
 # 3. Push
-docker push harbor.mpakoupete.com/<votre-prenom>-formation/vote:v1
-docker push harbor.mpakoupete.com/<votre-prenom>-formation/worker:v1
-docker push harbor.mpakoupete.com/<votre-prenom>-formation/result:v1
+docker push harbor.wizetraining.com/<votre-prenom>-formation/vote:v1
+docker push harbor.wizetraining.com/<votre-prenom>-formation/worker:v1
+docker push harbor.wizetraining.com/<votre-prenom>-formation/result:v1
 =======
 Connectez vous à [https://harbor.wizetraining.com](https://harbor.wizetraining.com) puis créez un repository publique du nom de `<votre-prenom>-formation` (ex: `mawaki-formation`)
 

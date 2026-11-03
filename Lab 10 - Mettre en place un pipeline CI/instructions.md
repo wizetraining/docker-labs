@@ -61,7 +61,7 @@ En production, nous utilisons des solutions robustes comme **Harbor** pour la s�
 
 1.  **Accès à Harbor :**
 <<<<<<< HEAD
-    Ouvrez l'interface web de votre registre privé de production : **`https://harbor.mpakoupete.com`**.
+    Ouvrez l'interface web de votre registre privé de production : **`https://harbor.wizetraining.com`**.
 =======
     Ouvrez l'interface web de votre registre privé de production : **`https://harbor.wizetraining.com`**.
 >>>>>>> 94a73de (labs ajouté)
@@ -83,7 +83,7 @@ En production, nous utilisons des solutions robustes comme **Harbor** pour la s�
       * Connectez-vous à Harbor :
         ```bash
 <<<<<<< HEAD
-        docker login harbor.mpakoupete.com
+        docker login harbor.wizetraining.com
 =======
         docker login harbor.wizetraining.com
 >>>>>>> 94a73de (labs ajouté)
@@ -92,8 +92,8 @@ En production, nous utilisons des solutions robustes comme **Harbor** pour la s�
       * Taguage et Push :
         ```bash
 <<<<<<< HEAD
-        docker tag local-app:latest harbor.mpakoupete.com/votre-login-images/mon-app:v1
-        docker push harbor.mpakoupete.com/votre-login-images/mon-app:v1
+        docker tag local-app:latest harbor.wizetraining.com/votre-login-images/mon-app:v1
+        docker push harbor.wizetraining.com/votre-login-images/mon-app:v1
 =======
         docker tag local-app:latest harbor.wizetraining.com/votre-login-images/mon-app:v1
         docker push harbor.wizetraining.com/votre-login-images/mon-app:v1
@@ -115,7 +115,7 @@ Nous allons automatiser le *build* et le *push* vers Harbor via GitLab CI.
 1.  **Accès et Compte GitLab :**
 
 <<<<<<< HEAD
-      * Allez sur **`http://gitlab.mpakoupete.com/`** et créez votre compte en utilisant le même `login` que celui du fichier partagé.
+      * Allez sur **`http://gitlab.wizetraining.com/`** et créez votre compte en utilisant le même `login` que celui du fichier partagé.
 =======
       * Allez sur **`http://gitlab.wizetraining.com/`** et créez votre compte en utilisant le même `login` que celui du fichier partagé.
 >>>>>>> 94a73de (labs ajouté)
@@ -126,7 +126,7 @@ Nous allons automatiser le *build* et le *push* vers Harbor via GitLab CI.
       * **Générez et ajoutez votre clé SSH** :
         ```bash
 <<<<<<< HEAD
-        ssh-keygen -t ed25519 -C "votre_prenom@gitlab.mpakoupete.com"
+        ssh-keygen -t ed25519 -C "votre_prenom@gitlab.wizetraining.com"
 =======
         ssh-keygen -t ed25519 -C "votre_prenom@gitlab.wizetraining.com"
 >>>>>>> 94a73de (labs ajouté)
@@ -139,7 +139,7 @@ Nous allons automatiser le *build* et le *push* vers Harbor via GitLab CI.
       * Clonez le projet via SSH :
         ```bash
 <<<<<<< HEAD
-        git clone git@gitlab.mpakoupete.com:votre_login/docker-builder-lab.git
+        git clone git@gitlab.wizetraining.com:votre_login/docker-builder-lab.git
 =======
         git clone git@gitlab.wizetraining.com:votre_login/docker-builder-lab.git
 >>>>>>> 94a73de (labs ajouté)
@@ -173,7 +173,7 @@ Nous allons automatiser le *build* et le *push* vers Harbor via GitLab CI.
 
     variables:
 <<<<<<< HEAD
-      DOCKER_REGISTRY_URL: "harbor.mpakoupete.com" 
+      DOCKER_REGISTRY_URL: "harbor.wizetraining.com" 
 =======
       DOCKER_REGISTRY_URL: "harbor.wizetraining.com" 
 >>>>>>> 94a73de (labs ajouté)
@@ -243,7 +243,7 @@ Nous allons utiliser la variable **`$CI_COMMIT_TAG`** qui ne s'active que lorsqu
     # ⬇️ CHANGEMENT : Utiliser la variable $CI_COMMIT_TAG
     variables:
 <<<<<<< HEAD
-      DOCKER_REGISTRY_URL: "harbor.mpakoupete.com" 
+      DOCKER_REGISTRY_URL: "harbor.wizetraining.com" 
 =======
       DOCKER_REGISTRY_URL: "harbor.wizetraining.com" 
 >>>>>>> 94a73de (labs ajouté)
@@ -280,7 +280,7 @@ Nous allons utiliser la variable **`$CI_COMMIT_TAG`** qui ne s'active que lorsqu
         ```
 
 <<<<<<< HEAD
-      * **Vérifiez :** Le pipeline s'exécute. L'image est poussée vers Harbor avec le tag **`harbor.mpakoupete.com/votre_login/mon-app:1.2.0`**.
+      * **Vérifiez :** Le pipeline s'exécute. L'image est poussée vers Harbor avec le tag **`harbor.wizetraining.com/votre_login/mon-app:1.2.0`**.
 =======
       * **Vérifiez :** Le pipeline s'exécute. L'image est poussée vers Harbor avec le tag **`harbor.wizetraining.com/votre_login/mon-app:1.2.0`**.
 >>>>>>> 94a73de (labs ajouté)
