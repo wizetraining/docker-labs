@@ -306,11 +306,7 @@ C'est la partie critique pour une entreprise. Nous ne voulons pas stocker notre 
 
 #### 3.1 Configuration du projet dans Harbor
 
-<<<<<<< HEAD
 1.  Connectez-vous à l'interface web : **https://harbor.wizetraining.com**.
-=======
-1.  Connectez-vous à l'interface web : **https://harbor.wizetraining.com**.
->>>>>>> 94a73de (labs ajouté)
 2.  Cliquez sur le bouton **"+ NOUVEAU PROJET"**.
 3.  Remplissez le formulaire :
       * **Nom du projet :** `<votre prenom>-lab3-python` (ou votre nom d'utilisateur).
@@ -333,13 +329,8 @@ Pour envoyer une image vers un registre privé, il faut respecter une convention
 2.  Appliquez le tag pour Harbor (si nécessaire remplacez `<votre prenom>-lab3-python` par le nom de projet que vous avez créé à l'étape 3.1)  :
 
     ```bash
-<<<<<<< HEAD
     # Syntaxe : docker tag <image_locale> harbor.wizetraining.com/<projet>/<image>:<version>
     docker tag mon-python-app:v1 harbor.wizetraining.com/<votre prenom>-lab3-python/compteur-visite:v1
-=======
-    # Syntaxe : docker tag <image_locale> harbor.wizetraining.com/<projet>/<image>:<version>
-    docker tag mon-python-app:v1 harbor.wizetraining.com/<votre prenom>-lab3-python/compteur-visite:v1
->>>>>>> 94a73de (labs ajouté)
     ```
 
 #### 3.3 Authentification et Push
@@ -347,11 +338,7 @@ Pour envoyer une image vers un registre privé, il faut respecter une convention
 1.  Connectez votre client Docker au registre distant :
 
     ```bash
-<<<<<<< HEAD
     docker login harbor.wizetraining.com
-=======
-    docker login harbor.wizetraining.com
->>>>>>> 94a73de (labs ajouté)
     ```
 
     *Entrez vos identifiants fournis par l'administrateur.*
@@ -359,11 +346,7 @@ Pour envoyer une image vers un registre privé, il faut respecter une convention
 2.  Envoyez (Push) l'image :
 
     ```bash
-<<<<<<< HEAD
     docker push harbor.wizetraining.com/<votre prenom>-lab3-python/compteur-visite:v1
-=======
-    docker push harbor.wizetraining.com/<votre prenom>-lab3-python/compteur-visite:v1
->>>>>>> 94a73de (labs ajouté)
     ```
 
 #### 3.4 Analyse de vulnérabilités

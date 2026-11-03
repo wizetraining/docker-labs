@@ -60,11 +60,7 @@ Cette partie permet de comprendre le concept d'un registre sans les complexités
 En production, nous utilisons des solutions robustes comme **Harbor** pour la sécurité (HTTPS, Scan de Vulnérabilité, Governance).
 
 1.  **Accès à Harbor :**
-<<<<<<< HEAD
     Ouvrez l'interface web de votre registre privé de production : **`https://harbor.wizetraining.com`**.
-=======
-    Ouvrez l'interface web de votre registre privé de production : **`https://harbor.wizetraining.com`**.
->>>>>>> 94a73de (labs ajouté)
 
       * **Login :** Utilisez le `login` fourni dans le fichier partagé.
       * **Mot de passe :** Utilisez le `mot de passe` fourni dans le fichier partagé.
@@ -82,27 +78,17 @@ En production, nous utilisons des solutions robustes comme **Harbor** pour la s�
       * Réutilisez votre `Dockerfile` local.
       * Connectez-vous à Harbor :
         ```bash
-<<<<<<< HEAD
         docker login harbor.wizetraining.com
-=======
-        docker login harbor.wizetraining.com
->>>>>>> 94a73de (labs ajouté)
-        # (Utilisez votre login/mot de passe d'utilisateur Harbor)
         ```
       * Taguage et Push :
         ```bash
-<<<<<<< HEAD
         docker tag local-app:latest harbor.wizetraining.com/votre-login-images/mon-app:v1
         docker push harbor.wizetraining.com/votre-login-images/mon-app:v1
-=======
-        docker tag local-app:latest harbor.wizetraining.com/votre-login-images/mon-app:v1
-        docker push harbor.wizetraining.com/votre-login-images/mon-app:v1
->>>>>>> 94a73de (labs ajouté)
         ```
 
 4.  **Explorer Harbor et Activer le Scan :**
 
-      * Dans l'interface Harbor, allez dans votre nouveau projet.
+      * Dans l'interface wizetraining.com votre nouveau projet.
       * Cliquez sur le dépôt `mon-app`.
       * **Observation :** Harbor démarre automatiquement le **scan de vulnérabilités (Trivy)**. Observez le résultat (Common Vulnerabilities and Exposures - CVEs).
 
@@ -110,39 +96,27 @@ En production, nous utilisons des solutions robustes comme **Harbor** pour la s�
 
 ## Partie 3 : Préparation de l'Environnement GitLab et CI/CD
 
-Nous allons automatiser le *build* et le *push* vers Harbor via GitLab CI.
+Nous allons automatiserle *build* et le *push* vers Harbor via GitLab CI.
 
 1.  **Accès et Compte GitLab :**
 
-<<<<<<< HEAD
       * Allez sur **`http://gitlab.wizetraining.com/`** et créez votre compte en utilisant le même `login` que celui du fichier partagé.
-=======
-      * Allez sur **`http://gitlab.wizetraining.com/`** et créez votre compte en utilisant le même `login` que celui du fichier partagé.
->>>>>>> 94a73de (labs ajouté)
 
 2.  **Création du Projet et Clé SSH :**
 
       * Créez un nouveau projet privé dans GitLab (ex: `docker-builder-lab`).
       * **Générez et ajoutez votre clé SSH** :
         ```bash
-<<<<<<< HEAD
         ssh-keygen -t ed25519 -C "votre_prenom@gitlab.wizetraining.com"
-=======
-        ssh-keygen -t ed25519 -C "votre_prenom@gitlab.wizetraining.com"
->>>>>>> 94a73de (labs ajouté)
         cat ~/.ssh/id_ed25519.pub
         ```
-      * Collez la clé dans **GitLab $\rightarrow$ Profil $\rightarrow$ SSH Keys**.
+      * Collez la clé dans **GitLab > Profil > SSH Keys**.
 
 3.  **Configuration Locale et Code :**
 
       * Clonez le projet via SSH :
         ```bash
-<<<<<<< HEAD
         git clone git@gitlab.wizetraining.com:votre_login/docker-builder-lab.git
-=======
-        git clone git@gitlab.wizetraining.com:votre_login/docker-builder-lab.git
->>>>>>> 94a73de (labs ajouté)
         cd docker-builder-lab
         ```
       * Créez un fichier **`Dockerfile`** (même le plus simple) et un fichier **`.gitlab-ci.yml`**.
@@ -150,7 +124,7 @@ Nous allons automatiser le *build* et le *push* vers Harbor via GitLab CI.
 4.  **Configuration des Variables Secrètes (CRITIQUE) :**
     Pour permettre à votre pipeline de s'authentifier auprès de Harbor, vous devez définir les variables CI/CD.
 
-      * Allez dans votre projet GitLab $\rightarrow$ **Settings** (Paramètres) $\rightarrow$ **CI/CD**.
+      * Allez dans votre projet GitLab **Settings** (Paramètres) > **CI/CD**.
       * Développez **Variables**.
       * Ajoutez les variables suivantes (marquées **Protected** et **Masked**) :
         | Clé | Valeur | Rôle |
@@ -172,11 +146,7 @@ Nous allons automatiser le *build* et le *push* vers Harbor via GitLab CI.
       - push
 
     variables:
-<<<<<<< HEAD
       DOCKER_REGISTRY_URL: "harbor.wizetraining.com" 
-=======
-      DOCKER_REGISTRY_URL: "harbor.wizetraining.com" 
->>>>>>> 94a73de (labs ajouté)
       # Utilise le hachage pour le tag (sera changé en Partie 4)
       # IMAGE_NAME: "$DOCKER_REGISTRY_URL/$CI_PROJECT_PATH:$CI_COMMIT_SHORT_SHA"
       IMAGE_NAME: "$DOCKER_REGISTRY_URL/<votre-registre>/<nom-image>:$CI_COMMIT_SHORT_SHA"
@@ -220,7 +190,7 @@ Nous allons automatiser le *build* et le *push* vers Harbor via GitLab CI.
         git push origin main
         ```
       * **Vérifiez le Pipeline :** Allez dans GitLab $\rightarrow$ **CI/CD** $\rightarrow$ **Pipelines**.
-      * **Le pipeline marche-t-il ?** Si vous avez géré les problèmes de certificat (Harbor) et de tags (`docker`) sur le Runner, le pipeline devrait réussir.
+      * **Le pipeline marche-t-il ?** Si vous avez géré les problème de certificat (Harbor) et de tags (`docker`) sur le Runner, le pipeline devrait réussir.
       * **Vérifiez votre repo Harbor :** Après succès, l'image sera visible dans votre projet Harbor `votre-login-images` avec un tag **hash** (ex: `b5cdc5d3`).
 
 -----
@@ -242,11 +212,7 @@ Nous allons utiliser la variable **`$CI_COMMIT_TAG`** qui ne s'active que lorsqu
 
     # ⬇️ CHANGEMENT : Utiliser la variable $CI_COMMIT_TAG
     variables:
-<<<<<<< HEAD
       DOCKER_REGISTRY_URL: "harbor.wizetraining.com" 
-=======
-      DOCKER_REGISTRY_URL: "harbor.wizetraining.com" 
->>>>>>> 94a73de (labs ajouté)
       IMAGE_NAME: "$DOCKER_REGISTRY_URL/$CI_PROJECT_PATH:$CI_COMMIT_TAG" # ⬅️ MODIFIÉ
 
     # ...
@@ -279,11 +245,7 @@ Nous allons utiliser la variable **`$CI_COMMIT_TAG`** qui ne s'active que lorsqu
         git push origin 1.2.0 # ⬅️ DÉCLENCHE LE PIPELINE
         ```
 
-<<<<<<< HEAD
       * **Vérifiez :** Le pipeline s'exécute. L'image est poussée vers Harbor avec le tag **`harbor.wizetraining.com/votre_login/mon-app:1.2.0`**.
-=======
-      * **Vérifiez :** Le pipeline s'exécute. L'image est poussée vers Harbor avec le tag **`harbor.wizetraining.com/votre_login/mon-app:1.2.0`**.
->>>>>>> 94a73de (labs ajouté)
 
       Si vous rencontrez cette erreur ci-dessous, c'est parce que vos variables `DOCKER_USER` et `DOCKER_PASSWORD` sont des variables protégées. Dans GitLab ne sont disponibles que pour les pipelines lancés sur des branches protégées (typiquement main, master, ou des tags protégés).
 
