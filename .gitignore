@@ -13,14 +13,15 @@
 #Lab 11*
 #Lab 12*
 #Lab 13*
-#Lab 14*
+Lab 14*
 slides/
 Work/
 __pycache__/
 *.py[codz]
 *$py.class
 **/.DS_Store
-
+.claude/
+.gitignore
 
 # C extensions
 *.so
