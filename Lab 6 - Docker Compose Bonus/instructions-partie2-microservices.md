@@ -125,7 +125,7 @@ if __name__ == '__main__':
 
 ```text
 flask
-kafka-python
+kafka-python==2.2.15
 ```
 
 ### 2\. Service Worker (Go)
@@ -492,3 +492,285 @@ docker push harbor.wizetraining.com/<votre-prenom>-formation/vote:v1
 docker push harbor.wizetraining.com/<votre-prenom>-formation/worker:v1
 docker push harbor.wizetraining.com/<votre-prenom>-formation/result:v1
 ```
+
+
+## Partie 4 : Amélioration – Orchestrer le démarrage avec les Healthchecks
+
+### Introduction : Pourquoi `depends_on` ne suffit pas ?
+
+Dans notre première version du `docker-compose.yml`, nous avons configuré le service Worker de cette manière :
+
+```yaml
+worker:
+  build: ./worker
+  depends_on: [kafka, db]
+```
+
+**Problème :** Docker Compose garantit que les conteneurs `kafka` et `db` sont démarrés avant `worker`. Cependant, un conteneur démarré n'est pas nécessairement un service opérationnel !
+
+Par exemple :
+- PostgreSQL peut avoir démarré son conteneur, mais être encore en train d'initialiser sa base de données.
+- Le Worker démarre et tente immédiatement de se connecter à PostgreSQL.
+- La connexion échoue car la base de données n'est pas encore prête.
+- Dans notre code Go, après 15 tentatives de connexion (30 secondes), le Worker abandonne et s'arrête.
+
+**Notre objectif :** faire en sorte que Docker Compose attende que PostgreSQL soit réellement opérationnel avant de démarrer le Worker.
+
+### 1. Comprendre le fonctionnement des Healthchecks
+
+Docker propose un mécanisme appelé `healthcheck` permettant de vérifier périodiquement l'état de santé d'un conteneur.
+
+Un conteneur peut avoir trois états :
+
+| État | Signification |
+|---|---|
+| `starting` | Le healthcheck n'a pas encore réussi. |
+| `healthy` | Le test de santé a réussi. |
+| `unhealthy` | Le nombre de tentatives échouées a été atteint. |
+
+Nous allons utiliser la commande `pg_isready`, disponible dans l'image officielle PostgreSQL, pour vérifier que la base de données accepte les connexions.
+
+### 2. Ajouter un Healthcheck à PostgreSQL
+
+Modifiez le service `db` dans votre fichier `docker-compose.yml` :
+
+```yaml
+db:
+  image: postgres:13-alpine
+  environment:
+    POSTGRES_PASSWORD: password
+
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+    interval: 5s
+    timeout: 3s
+    retries: 5
+    start_period: 10s
+```
+
+**Explication des paramètres :**
+
+- `test` : commande exécutée pour vérifier la disponibilité de PostgreSQL.
+- `interval` : fréquence d'exécution du test (5 secondes).
+- `timeout` : durée maximale accordée à chaque vérification.
+- `retries` : nombre d'échecs consécutifs avant de déclarer le conteneur `unhealthy`.
+- `start_period` : période de grâce accordée au démarrage de PostgreSQL.
+
+### 3. Modifier la condition de démarrage du Worker
+
+Maintenant que PostgreSQL expose un état de santé, nous pouvons utiliser `condition: service_healthy` dans la configuration de `depends_on`.
+
+Remplacez la configuration actuelle du Worker :
+
+```yaml
+worker:
+  build: ./worker
+  depends_on: [kafka, db]
+```
+
+Par :
+
+```yaml
+worker:
+  build: ./worker
+
+  depends_on:
+    kafka:
+      condition: service_started
+    db:
+      condition: service_healthy
+
+  environment:
+    KAFKA_BROKER: kafka:9092
+    DB_HOST: db
+    DB_USER: postgres
+    DB_PASS: password
+```
+
+**Que se passe-t-il maintenant ?**
+
+1. Docker Compose démarre les conteneurs Kafka et PostgreSQL.
+2. Le healthcheck de PostgreSQL commence à vérifier sa disponibilité.
+3. Tant que PostgreSQL n'est pas `healthy`, Docker Compose n'autorise pas le démarrage du Worker.
+4. Dès que PostgreSQL devient `healthy`, Docker Compose démarre le Worker.
+5. Le Worker peut alors se connecter à PostgreSQL et commencer à consommer les messages Kafka.
+
+### 4. Tester notre amélioration
+
+Pour observer le comportement, nous allons repartir d'un environnement arrêté.
+
+**Étape 1 : Arrêter l'application avec suppression de tous les volumes (option `-v`)**
+
+```bash
+docker compose down -v
+```
+
+**Étape 2 : Relancer les services**
+
+```bash
+docker compose up --build
+```
+
+**Étape 3 : Observer les états de santé**
+
+Dans un autre terminal :
+
+```bash
+docker compose ps
+```
+
+Vous pouvez également inspecter directement l'état de santé de PostgreSQL :
+
+```bash
+docker inspect \
+  --format='{{.State.Health.Status}}' \
+  $(docker compose ps -q db)
+```
+
+**Étape 4 : Observer les logs du Worker**
+
+```bash
+docker compose logs -f worker
+```
+
+Vous devriez constater que le Worker ne démarre qu'après que PostgreSQL est déclaré `healthy`.
+
+Une fois démarré, vous devriez retrouver :
+
+```text
+Tentative de connexion à Postgres...
+Connecté à la base de données avec succès !
+Worker démarré, en attente de messages Kafka...
+```
+
+### 5. Comprendre ce que nous avons amélioré
+
+Comparons les deux approches :
+
+| Configuration | Comportement |
+|---|---|
+| `depends_on: [db]` | Attend uniquement le démarrage du conteneur DB. |
+| `depends_on` + `service_healthy` | Attend que le healthcheck DB réussisse avant de démarrer le Worker. |
+
+**À retenir :**
+
+- `depends_on` définit les dépendances et l'ordre de démarrage.
+- `healthcheck` permet de contrôler la disponibilité d'un service.
+- `condition: service_healthy` permet de conditionner le démarrage d'un service à la réussite du healthcheck de sa dépendance.
+
+### 6. Pour aller plus loin : Faut-il supprimer la boucle de Retry dans Go ?
+
+Dans notre code Go, nous avons également implémenté une boucle de reconnexion :
+
+```go
+for i := 0; i < 15; i++ {
+    db, err = sql.Open("postgres", connStr)
+    if err == nil {
+        err = db.Ping()
+    }
+
+    if err == nil {
+        fmt.Println("Connecté à la base de données avec succès !")
+        break
+    }
+
+    fmt.Printf("La DB n'est pas prête, nouvelle tentative dans 2s... (%v)\n", err)
+    time.Sleep(2 * time.Second)
+}
+```
+
+Avec notre nouveau Healthcheck, cette boucle devient moins sollicitée au démarrage, puisque Docker Compose attend déjà que PostgreSQL soit opérationnel.
+
+Cependant, il est préférable de la conserver : un Healthcheck Docker Compose ne garantit pas que la base restera disponible pendant toute la durée de vie du Worker.
+
+La boucle de Retry constitue donc une seconde protection au niveau applicatif.
+
+**Conclusion :** nous avons maintenant deux niveaux de protection complémentaires :
+- Au niveau de l'infrastructure : Docker Compose contrôle l'ordre et les conditions de démarrage.
+- Au niveau applicatif : le Worker Go gère les erreurs de connexion à PostgreSQL.
+
+### Questions de validation
+
+1. Quelle est la différence entre `service_started` et `service_healthy` ?
+2. Si PostgreSQL devient `unhealthy` après le démarrage du Worker, Docker Compose arrête-t-il automatiquement le Worker ?
+3. Pourquoi est-il intéressant de conserver une boucle de Retry dans le code Go malgré la présence d'un Healthcheck ?
+4. Peut-on appliquer le même mécanisme au service Kafka ?
+
+### Réponses aux questions de validation
+
+<details>
+<summary>Réponse 1 – Différence entre `service_started` et `service_healthy`</summary>
+
+- `service_started` : Docker Compose attend simplement que le conteneur de dépendance soit démarré. Il ne vérifie pas que l'application à l'intérieur est opérationnelle.
+- `service_healthy` : Docker Compose attend que le healthcheck du conteneur réussisse avant de démarrer le service dépendant.
+
+**Exemple :** avec `service_healthy`, le Worker attend que PostgreSQL accepte réellement les connexions avant de démarrer.
+
+</details>
+
+<details>
+<summary>Réponse 2 – PostgreSQL devient unhealthy après le démarrage du Worker</summary>
+
+Non. Docker Compose n'arrête pas automatiquement le Worker si PostgreSQL devient `unhealthy` après son démarrage.
+
+La condition `service_healthy` est évaluée au démarrage du service dépendant. Elle ne constitue pas un mécanisme de supervision permanente des dépendances.
+
+Le Worker doit donc être capable de gérer lui-même les pertes de connexion à PostgreSQL.
+
+</details>
+
+<details>
+<summary>Réponse 3 – Pourquoi conserver une boucle de Retry dans Go ?</summary>
+
+Parce qu'un Healthcheck ne garantit pas que PostgreSQL restera disponible pendant toute la durée de vie du Worker.
+
+Plusieurs situations peuvent provoquer une interruption :
+- Redémarrage du conteneur PostgreSQL.
+- Indisponibilité temporaire du réseau.
+- Maintenance ou surcharge de la base de données.
+
+La boucle de Retry permet au Worker de retenter sa connexion plutôt que d'abandonner immédiatement.
+
+**À retenir :** le Healthcheck protège le démarrage, tandis que le Retry protège la connexion au niveau applicatif.
+
+</details>
+
+<details>
+<summary>Réponse 4 – Peut-on appliquer le même mécanisme à Kafka ?</summary>
+
+Oui. Il est possible d'ajouter un `healthcheck` au service Kafka et d'utiliser ensuite `condition: service_healthy` dans les dépendances du Worker et du service Vote.
+
+Par exemple, avec l'image Confluent Kafka, on peut utiliser :
+
+```yaml
+kafka:
+  image: confluentinc/cp-kafka:7.4.4
+  depends_on:
+    - zookeeper
+
+  healthcheck:
+    test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+    interval: 10s
+    timeout: 10s
+    retries: 5
+    start_period: 20s
+```
+
+Puis dans le Worker :
+
+```yaml
+worker:
+  build: ./worker
+
+  depends_on:
+    kafka:
+      condition: service_healthy
+    db:
+      condition: service_healthy
+```
+
+La commande `kafka-broker-api-versions` permet de vérifier que le broker Kafka répond aux requêtes d'API.
+
+Attention : cette configuration doit être testée avec la version de l'image utilisée et la commande disponible dans celle-ci.
+
+</details>

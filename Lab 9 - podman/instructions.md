@@ -225,6 +225,13 @@ C'est l'une des fonctionnalités les plus puissantes de Podman par rapport à Do
 
 > *Succès : Systemd a lu votre fichier, a appelé Podman en arrière-plan et a lancé le conteneur. Si le serveur physique redémarre, `systemd` relancera ce conteneur automatiquement pour vous, sans aucun besoin de droits root !*
 
+Pourquoi a t'on besoin d'ajouter `loginctl enable-linger $USER` ?
+
+> `loginctl enable-linger $USER` permet de maintenir l'instance **systemd utilisateur active même lorsque l'utilisateur se déconnecte de sa session Linux**.
+> En mode rootless, les conteneurs sont exécutés dans le contexte de l'utilisateur courant et leurs services systemd (`systemctl --user`) dépendent normalement de sa session.
+> Sans le mécanisme de *lingering*, la déconnexion de l'utilisateur peut entraîner l'arrêt de ses services et donc de ses conteneurs.
+> En activant le lingering, on permet à systemd de démarrer les services utilisateur dès le démarrage de la machine et de les maintenir actifs indépendamment de la connexion de l'utilisateur.
+> **En résumé :** cette commande garantit que les conteneurs rootless peuvent démarrer automatiquement au boot/reboot et continuer à fonctionner même après la déconnexion de l'utilisateur, sans nécessiter une session interactive permanente.
 ---
 
 ## Partie 6 : Pod-man compose

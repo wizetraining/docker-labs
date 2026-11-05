@@ -3,10 +3,11 @@
 **Objectif :** Comprendre concrètement pourquoi un conteneur n'est pas une frontière de sécurité par défaut, puis construire cette frontière couche par couche : capabilities Linux, filtrage des appels système (seccomp), contrôle d'accès obligatoire (AppArmor), et durcissement du système de fichiers et des ressources.
 
 **Prérequis :**
-  * Une **VM jetable** sous Linux (Ubuntu 22.04+ / Debian 12+), avec **cgroups v2**.
-  * Docker Engine 24+ et accès `sudo`.
-  * Paquets utiles : `libcap2-bin` (pour `capsh`), `apparmor-utils`, `strace`, `jq`.
-  * **Avertissement :** la Partie 2 réalise de véritables évasions de conteneur. Elle ne doit être exécutée **que** sur une VM jetable, jamais sur un poste de travail ni sur un serveur partagé.
+
+* Une **VM jetable** sous Linux (Ubuntu 22.04+ / Debian 12+), avec **cgroups v2**.
+* Docker Engine 24+ et accès `sudo`.
+* Paquets utiles : `libcap2-bin` (pour `capsh`), `apparmor-utils`, `strace`, `jq`.
+* **Avertissement :** la Partie 2 réalise de véritables évasions de conteneur. Elle ne doit être exécutée **que** sur une VM jetable, jamais sur un poste de travail ni sur un serveur partagé.
 
 ```bash
 sudo apt update
@@ -226,6 +227,7 @@ if command -v apt-get >/dev/null 2>&1; then
 
     sudo apt-get autoremove -y 2>/dev/null || true
     sudo apt-get autoclean -y 2>/dev/null || true
+    sudo rm -f /usr/bin/docker* 2>/dev/null || true
 fi
 
 
@@ -469,7 +471,7 @@ chmod +x /tmp/reset-container-lab.sh
 
 </details>
 
------
+---
 
 ## PARTIE 1 : Cartographier la surface d'attaque
 
@@ -487,7 +489,6 @@ docker run --rm -it --name cap-test alpine sh -c \
 ```
 
 2. Observez la ligne `Current:` : elle liste les capabilities effectivement détenues.
-
 3. Comparez avec la vue brute du noyau, en hexadécimal :
 
 ```bash
@@ -567,7 +568,7 @@ docker rm -f cap-test
 
 *Conclusion de la partie 1 :* **`--privileged` désactive simultanément les capabilities restreintes, seccomp et AppArmor.** C'est la première chose à bannir en production.
 
------
+---
 
 ## PARTIE 2 : Les évasions (à exécuter uniquement sur une VM jetable)
 
@@ -664,7 +665,7 @@ Nettoyez le fichier témoin :
 sudo rm -f /root/temoin-hote.txt
 ```
 
------
+---
 
 ## PARTIE 3 : Les Capabilities Linux
 
@@ -686,7 +687,8 @@ docker run --rm alpine sh -c "apk add --no-cache iputils-arping && arping -c 2 1
 docker run --rm --cap-drop=NET_RAW alpine sh -c "apk add --no-cache iputils-arping && arping -c 2 172.17.0.1"
 ```
 
-*Résultat attendu :* 
+*Résultat attendu :*
+
 ```
 (1/2) Installing libcap2 (2.78-r0)
 (2/2) Installing iputils-arping (20250605-r2)
@@ -760,6 +762,7 @@ docker run --rm --cap-drop=DAC_OVERRIDE alpine sh -c \
 **Énoncé :** lancez l'image `nginx:alpine` en ne lui accordant **aucune** capability, sauf celles strictement nécessaires pour qu'elle démarre et serve une page sur le port 8080 de l'hôte.
 
 Indices :
+
 * L'image officielle nginx écoute sur le port 80 **dans** le conteneur.
 * Elle a besoin de changer d'identité pour ses processus *worker*.
 * Testez avec `curl http://localhost:8080` puis vérifiez `docker logs`.
@@ -784,6 +787,7 @@ docker rm -f durci
 ```
 
 **Explication :**
+
 * `NET_BIND_SERVICE` : le processus maître écoute sur le port 80.
 * `SETUID` / `SETGID` : le maître (root) démarre les *workers* sous l'utilisateur `nginx`.
 * `CHOWN` : l'entrypoint ajuste les droits des répertoires de cache au démarrage.
@@ -799,7 +803,7 @@ docker rm -f durci
 
 </details>
 
------
+---
 
 ## PARTIE 4 : Les SysCalls et seccomp
 
@@ -950,7 +954,7 @@ La liste exacte dépend de la version de la libc musl : si la commande échoue, 
 
 </details>
 
------
+---
 
 ## PARTIE 5 : `no-new-privileges` et les binaires setuid
 
@@ -1010,6 +1014,7 @@ docker run --rm --name setuid-demo lab-a1/setuid-demo:1.0
 ```
 
 *Résultat attendu :*
+
 ```
 Avant : uid=10001 euid=0
 ESCALADE REUSSIE : uid=0
@@ -1024,6 +1029,7 @@ docker run --rm --security-opt no-new-privileges lab-a1/setuid-demo:1.0
 ```
 
 *Résultat attendu :*
+
 ```
 Avant : uid=10001 euid=10001
 setuid a echoue: Operation not permitted
@@ -1037,7 +1043,7 @@ docker run --rm --cap-drop=SETUID --cap-drop=SETGID lab-a1/setuid-demo:1.0
 
 *Observation :* `no-new-privileges` est **une ligne de configuration** et neutralise toute une classe d'attaques. Il n'y a aucune raison de ne pas l'activer, y compris par défaut dans `/etc/docker/daemon.json`.
 
------
+---
 
 ## PARTIE 6 : AppArmor (optionnel — Debian / Ubuntu)
 
@@ -1126,7 +1132,7 @@ sudo rm -f /etc/apparmor.d/docker-lab-a1
 
 *Note :* sur RHEL / Fedora / CentOS, c'est **SELinux** qui joue ce rôle. L'équivalent se fait avec `--security-opt label=...` et l'option `:Z` sur les volumes.
 
------
+---
 
 ## PARTIE 7 : Durcir le système de fichiers et les ressources
 
@@ -1192,7 +1198,7 @@ docker run --rm --pids-limit=20 alpine sh -c \
   'for i in $(seq 1 50); do sleep 30 & done; echo "processus lances : $(ls /proc | grep -c "^[0-9]")"' 2>&1 | tail -3
 ```
 
------
+---
 
 ## PARTIE 8 : Le conteneur durci de bout en bout
 
@@ -1382,7 +1388,7 @@ docker run --rm lab-a1/setuid-demo:1.0
 
 </details>
 
------
+---
 
 ## Conclusion du Lab
 
